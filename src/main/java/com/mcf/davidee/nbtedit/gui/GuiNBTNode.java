@@ -26,11 +26,11 @@ public class GuiNBTNode extends Widget {
 		displayString = NBTStringHelper.getNBTNameSpecial(node.getObject());
 	}
 
-	private boolean inBounds(int mx, int my) {
+	private boolean inBounds(double mx, double my) {
 		return mx >= x && my >= y && mx < width + x && my < height + y;
 	}
 
-	private boolean inHideShowBounds(int mx, int my) {
+	private boolean inHideShowBounds(double mx, double my) {
 		return mx >= x - 9 && my >= y && mx < x && my < y + height;
 	}
 
@@ -38,11 +38,11 @@ public class GuiNBTNode extends Widget {
 		return node.shouldDrawChildren();
 	}
 
-	public boolean clicked(int mx, int my) {
+	public boolean clicked(double mx, double my) {
 		return inBounds(mx, my);
 	}
 
-	public boolean hideShowClicked(int mx, int my) {
+	public boolean hideShowClicked(double mx, double my) {
 		if (node.hasChildren() && inHideShowBounds(mx, my)) {
 			node.setDrawChildren(!node.shouldDrawChildren());
 			return true;

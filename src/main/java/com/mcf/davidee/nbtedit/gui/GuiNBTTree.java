@@ -48,9 +48,9 @@ import java.util.Map.Entry;
 public class GuiNBTTree extends Widget {
 
 	private NBTTree tree;
-	private List<GuiNBTNode> nodes = Lists.newArrayList();
-	private GuiSaveSlotButton[] saves = new GuiSaveSlotButton[16];
-	private GuiNBTButton[] buttons = new GuiNBTButton[16];
+	private List<GuiNBTNode> nodes;
+	private GuiSaveSlotButton[] saves;
+	private GuiNBTButton[] buttons;
 
 	private static final int X_GAP = 10;
 	private static final int START_X = 10;
@@ -80,16 +80,16 @@ public class GuiNBTTree extends Widget {
 	}
 
 	public GuiNBTTree(int width, int height, int bottom, NBTTree tree) {
-		super((width - GuiEditNBT.WIDTH) / 2, (height - GuiEditNBT.HEIGHT) / 2, width, height, StringTextComponent.EMPTY);
+		super(START_X, START_Y, width, height, StringTextComponent.EMPTY);
 
 		this.bottom = bottom;
 		this.tree = tree;
 		yClick = -1;
-		initGUI(false);
 		focusedSlotIndex = -1;
 		nodes = new ArrayList<>();
 		buttons = new GuiNBTButton[16];
 		saves = new GuiSaveSlotButton[7];
+		initGUI(false);
 	}
 
 	private int getHeightDifference() {
@@ -242,27 +242,40 @@ public class GuiNBTTree extends Widget {
 
 	@Override
 	public void render(MatrixStack matrixStack, int mouseX, int mouseY, float partialTicks) {
-//		int mutableMouseX = mouseX;
-//		int mutableMouseY = mouseY;
-//
-//		if (window != null) {
-//			mutableMouseX = -1;
-//			mutableMouseY = -1;
-//		}
-//		for (GuiNBTNode node : nodes) {
-//			if (node.shouldDraw(START_Y - 1, bottom))
-//				node.render(matrixStack, mutableMouseX, mutableMouseY, partialTicks);
-//		}
-//
-//		overlayBackground(matrixStack, 0, START_Y - 1, 255, 255);
-//		overlayBackground(matrixStack, bottom, height, 255, 255);
-//		for (GuiNBTButton but : buttons)
-//			but.render(matrixStack, mutableMouseX, mutableMouseY, partialTicks);
-//		for (GuiSaveSlotButton but : saves)
-//			but.render(matrixStack, mutableMouseX, mutableMouseY, partialTicks);
-//		drawScrollBar(matrixStack, mutableMouseX, mutableMouseY);
-//		if (window != null)
-//			window.render(matrixStack, mouseX, mouseY, partialTicks);
+		int mutableMouseX = mouseX;
+		int mutableMouseY = mouseY;
+
+		if (window != null) {
+			mutableMouseX = -1;
+			mutableMouseY = -1;
+		}
+
+		for (GuiNBTNode node : nodes) {
+			if (node != null && node.shouldDraw(START_Y - 1, bottom))
+				node.render(matrixStack, mutableMouseX, mutableMouseY, partialTicks);
+		}
+
+		overlayBackground(matrixStack, 0, START_Y - 1, 255, 255);
+		overlayBackground(matrixStack, bottom, height, 255, 255);
+		for (GuiNBTButton but : buttons) {
+			if (but == null) {
+				continue;
+			}
+
+			but.render(matrixStack, mutableMouseX, mutableMouseY, partialTicks);
+		}
+
+		for (GuiSaveSlotButton but : saves) {
+			if (but == null) {
+				continue;
+			}
+
+			but.render(matrixStack, mutableMouseX, mutableMouseY, partialTicks);
+		}
+
+		drawScrollBar(matrixStack, mutableMouseX, mutableMouseY);
+		if (window != null)
+			window.render(matrixStack, mouseX, mouseY, partialTicks);
 	}
 
 	private void drawScrollBar(MatrixStack matrixStack, int mouseX, int mouseY) {
@@ -309,8 +322,6 @@ public class GuiNBTTree extends Widget {
 				y = START_Y - 1;
 
 
-			//	this.drawGradientRect(width-20,y,width,y+length,8421504, 12632256);
-			//drawRect(width-20,y,width,y+length,0x80ffffff);
 			AbstractGui.fill(matrixStack, width - 20, y, width, y + length, 0x80ffffff);
 		}
 	}
@@ -333,12 +344,14 @@ public class GuiNBTTree extends Widget {
 		tessellator.end();
 	}
 
-	public void mouseClicked(int mx, int my) {
+
+	@Override
+	public boolean mouseClicked(double mouseX, double mouseY, int buttonId) {
 		if (window == null) {
 			boolean reInit = false;
 
 			for (GuiNBTNode node : nodes) {
-				if (node.hideShowClicked(mx, my)) { // Check hide/show children buttons
+				if (node.hideShowClicked(mouseX, mouseY)) { // Check hide/show children buttons
 					reInit = true;
 					if (node.shouldDrawChildren())
 						offset = (START_Y + 1) - (node.y) + offset;
@@ -347,27 +360,27 @@ public class GuiNBTTree extends Widget {
 			}
 			if (!reInit) {
 				for (GuiNBTButton button : buttons) { //Check top buttons
-					if (button.inBounds(mx, my)) {
+					if (button.inBounds(mouseX, mouseY)) {
 						buttonClicked(button);
-						return;
+						return true;
 					}
 				}
 				for (GuiSaveSlotButton button : saves) {
-					if (button.inBoundsOfX(mx, my)) {
+					if (button.inBoundsOfX(mouseX, mouseY)) {
 						button.reset();
 						NBTEdit.getSaveStates().save();
 						Minecraft.getInstance().getSoundManager().play(SimpleSound.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
-						return;
+						return true;
 					}
-					if (button.inBounds(mx, my)) {
+					if (button.inBounds(mouseX, mouseY)) {
 						saveButtonClicked(button);
-						return;
+						return true;
 					}
 				}
-				if (my >= START_Y && mx <= width - 175) { //Check actual nodes, remove focus if nothing clicked
+				if (mouseY >= START_Y && mouseX <= width - 175) { //Check actual nodes, remove focus if nothing clicked
 					Node<NamedNBT> newFocus = null;
 					for (GuiNBTNode node : nodes) {
-						if (node.clicked(mx, my)) {
+						if (node.clicked(mouseX, mouseY)) {
 							newFocus = node.getNode();
 							break;
 						}
@@ -375,11 +388,16 @@ public class GuiNBTTree extends Widget {
 					if (focusedSlotIndex != -1)
 						stopEditingSlot();
 					setFocused(newFocus);
+					return true;
 				}
 			} else
 				initGUI();
-		} else
-			window.click(mx, my);
+		} else {
+			window.mouseClicked(mouseX, mouseY, buttonId);
+			return true;
+		}
+
+		return false;
 	}
 
 	private void saveButtonClicked(GuiSaveSlotButton button) {
@@ -615,7 +633,7 @@ public class GuiNBTTree extends Widget {
 	private void edit() {
 		INBT base = focused.getObject().getNBT();
 		INBT parent = focused.getParent().getObject().getNBT();
-		window = new GuiEditNBT(this, focused, !(parent instanceof ListNBT), !(base instanceof CompoundNBT || base instanceof ListNBT));
+		window = new GuiEditNBT((width - GuiEditNBT.WIDTH) / 2, (height - GuiEditNBT.HEIGHT) / 2, this, focused, !(parent instanceof ListNBT), !(base instanceof CompoundNBT || base instanceof ListNBT));
 		window.init();
 	}
 
@@ -687,34 +705,39 @@ public class GuiNBTTree extends Widget {
 		focusedSlotIndex = -1;
 	}
 
-	public void keyTyped(char ch, int key) {
+	@Override
+	public boolean charTyped(char character, int keyCode) {
 		if (focusedSlotIndex != -1) {
-			saves[focusedSlotIndex].keyTyped(ch, key);
+			return saves[focusedSlotIndex].charTyped(character, keyCode);
 		} else {
-			if (key == GLFW.GLFW_KEY_C && InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL))
+			if (keyCode == GLFW.GLFW_KEY_C && InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL))
 				copy();
-			if (key == GLFW.GLFW_KEY_V && InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL) && canPaste())
+			if (keyCode == GLFW.GLFW_KEY_V && InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL) && canPaste())
 				paste();
-			if (key == GLFW.GLFW_KEY_X && InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL))
+			if (keyCode == GLFW.GLFW_KEY_X && InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL))
 				cut();
 		}
+
+		return true;
 	}
 
-	public void rightClick(int mx, int my) {
+	public boolean rightClick(double mouseX, double mouseY, int button) {
 		for (int i = 0; i < 7; ++i) {
-			if (saves[i].inBounds(mx, my)) {
+			if (saves[i].inBounds(mouseX, mouseY)) {
 				setFocused(null);
 				if (focusedSlotIndex != -1) {
 					if (focusedSlotIndex != i) {
 						saves[focusedSlotIndex].stopEditing();
 						NBTEdit.getSaveStates().save();
 					} else //Already editing the correct one!
-						return;
+						return true;
 				}
 				saves[i].startEditing();
 				focusedSlotIndex = i;
-				break;
+				return true;
 			}
 		}
+
+		return false;
 	}
 }

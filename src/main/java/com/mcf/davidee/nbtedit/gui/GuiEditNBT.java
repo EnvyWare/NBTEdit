@@ -25,9 +25,6 @@ public class GuiEditNBT extends Widget {
 	private boolean canEditText, canEditValue;
 	private GuiNBTTree parent;
 
-	private int x, y;
-
-
 	private GuiTextField key, value;
 	private GuiCharacterButton save, cancel;
 	private String kError, vError;
@@ -35,8 +32,8 @@ public class GuiEditNBT extends Widget {
 	private GuiCharacterButton newLine, section;
 
 
-	public GuiEditNBT(GuiNBTTree parent, Node<NamedNBT> node, boolean editText, boolean editValue) {
-		super(0, 0, 0, 0, StringTextComponent.EMPTY);
+	public GuiEditNBT(int x, int y, GuiNBTTree parent, Node<NamedNBT> node, boolean editText, boolean editValue) {
+		super(x, y, 0, 0, StringTextComponent.EMPTY);
 
 		this.parent = parent;
 		this.node = node;
@@ -73,23 +70,26 @@ public class GuiEditNBT extends Widget {
 		cancel = new GuiCharacterButton(x + 93, y + 62, 75, 20);
 	}
 
-	public void click(int mx, int my) {
-		if (newLine.inBounds(mx, my) && value.isFocused()) {
+	@Override
+	public boolean mouseClicked(double mouseX, double mouseY, int mouseKey) {
+		if (newLine.inBounds(mouseX, mouseY) && value.isFocused()) {
 			value.writeText("\n");
 			checkValidInput();
-		} else if (section.inBounds(mx, my) && value.isFocused()) {
+		} else if (section.inBounds(mouseX, mouseY) && value.isFocused()) {
 			value.writeText("" + NBTStringHelper.SECTION_SIGN);
 			checkValidInput();
 		} else {
-			key.mouseClicked(mx, my, 0);
-			value.mouseClicked(mx, my, 0);
-			if (save.mouseClicked(mx, my, 0))
+			key.mouseClicked(mouseX, mouseY, 0);
+			value.mouseClicked(mouseX, mouseY, 0);
+			if (save.mouseClicked(mouseX, mouseY, 0))
 				saveAndQuit();
-			if (cancel.mouseClicked(mx, my, 0))
+			if (cancel.mouseClicked(mouseX, mouseY, 0))
 				parent.closeWindow();
 			section.setEnabled(value.isFocused());
 			newLine.setEnabled(value.isFocused());
 		}
+
+		return true;
 	}
 
 	private void saveAndQuit() {
@@ -102,7 +102,6 @@ public class GuiEditNBT extends Widget {
 
 	@Override
 	public void render(MatrixStack matrix, int mx, int my, float partialTicks) {
-		//GL11.glBindTexture(GL11.GL_TEXTURE_2D, mc.renderEngine.getTexture("/nbtedit_textures/nbteditwindow.png"));
 		Minecraft.getInstance().getTextureManager().bind(WINDOW_TEXTURE);
 
 		GL11.glColor4f(1, 1, 1, 1);
@@ -132,9 +131,10 @@ public class GuiEditNBT extends Widget {
 	}
 
 	@Override
-	public void onClick(double c, double i) {
+	public boolean charTyped(char c, int i) {
 		if (i == GLFW.GLFW_KEY_ESCAPE) {
 			parent.closeWindow();
+			return true;
 		} else if (i == GLFW.GLFW_KEY_TAB) {
 			if (key.isFocused() && canEditValue) {
 				key.setFocused(false);
@@ -145,14 +145,17 @@ public class GuiEditNBT extends Widget {
 			}
 			section.setEnabled(value.isFocused());
 			newLine.setEnabled(value.isFocused());
+			return true;
 		} else if (i == GLFW.GLFW_KEY_ENTER) {
 			checkValidInput();
 			if (save.isEnabled())
 				saveAndQuit();
+			return true;
 		} else {
 			key.textboxKeyTyped(c, i);
 			value.textboxKeyTyped(c, i);
 			checkValidInput();
+			return true;
 		}
 	}
 

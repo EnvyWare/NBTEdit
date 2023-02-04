@@ -78,13 +78,13 @@ public class GuiSaveSlotButton extends Widget {
 		return y + (HEIGHT - X_SIZE) / 2;
 	}
 
-	public boolean inBoundsOfX(int mx, int my) {
+	public boolean inBoundsOfX(double mx, double my) {
 		int buttonX = leftBoundOfX();
 		int buttonY = topBoundOfX();
 		return xVisible && mx >= buttonX && my >= buttonY && mx < buttonX + X_SIZE && my < buttonY + X_SIZE;
 	}
 
-	public boolean inBounds(int mx, int my) {
+	public boolean inBounds(double mx, double my) {
 		return mx >= x && my >= y && mx < x + width && my < y + HEIGHT;
 	}
 
@@ -109,17 +109,21 @@ public class GuiSaveSlotButton extends Widget {
 		updatePosition();
 	}
 
-	public void keyTyped(char c, int key) {
+	@Override
+	public boolean charTyped(char c, int key) {
 		if (key == GLFW.GLFW_KEY_BACKSPACE) {
 			backSpace();
+			return true;
 		}
 		if (Character.isDigit(c) || Character.isLetter(c)) {
 			save.name += c;
 			text = (save.tag.isEmpty() ? "Save " : "Load ") + save.name;
 			updatePosition();
+			return true;
 		}
-	}
 
+		return false;
+	}
 
 	public void backSpace() {
 		if (save.name.length() > 0) {

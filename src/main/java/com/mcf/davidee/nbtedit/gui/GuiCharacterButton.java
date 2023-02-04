@@ -32,15 +32,14 @@ public class GuiCharacterButton extends Widget {
 			RenderSystem.color4f(0.5F, 0.5F, 0.5F, 1.0F);
 		}
 
-
-		// drawTexturedModalRect(x, y, id * WIDTH, 27, WIDTH, HEIGHT);
+		 AbstractGui.blit(matrix, x, y, 1 * WIDTH, 27, WIDTH, HEIGHT, 256, 256);
 	}
 
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
 	}
 
-	public boolean inBounds(int mx, int my) {
+	public boolean inBounds(double mx, double my) {
 		return this.enabled && mx >= x && my >= y && mx < x + WIDTH && my < y + HEIGHT;
 	}
 

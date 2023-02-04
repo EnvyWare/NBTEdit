@@ -339,14 +339,15 @@ public class GuiTextField extends Widget {
 	/**
 	 * Args: x, y, buttonClicked
 	 */
-	public void mouseClicked(int par1, int par2, int par3) {
+	@Override
+	public boolean mouseClicked(double mouseX, double mouseY, int buttonPressed) {
 		String displayString = text.replace(NBTStringHelper.SECTION_SIGN, '?');
-		boolean var4 = par1 >= this.x && par1 < this.y + this.width && par2 >= this.x && par2 < this.y + this.height;
+		boolean var4 = mouseX >= this.x && mouseX < this.y + this.width && mouseY >= this.x && mouseY < this.y + this.height;
 
 		this.setFocused(this.isEnabled && var4);
 
-		if (this.isFocused && par3 == 0) {
-			int var5 = par1 - this.x;
+		if (this.isFocused && buttonPressed == 0) {
+			double var5 = mouseX - this.x;
 
 			if (this.enableBackgroundDrawing) {
 				var5 -= 4;
@@ -355,8 +356,11 @@ public class GuiTextField extends Widget {
 			FontRenderer font = Minecraft.getInstance().font;
 			String var6 = font.plainSubstrByWidth(displayString.substring(this.field_73816_n), this.getWidth());
 
-			this.setCursorPosition(font.plainSubstrByWidth(var6, var5).length() + this.field_73816_n);
+			this.setCursorPosition(font.plainSubstrByWidth(var6, (int) var5).length() + this.field_73816_n);
+			return true;
 		}
+
+		return false;
 	}
 
 	/**

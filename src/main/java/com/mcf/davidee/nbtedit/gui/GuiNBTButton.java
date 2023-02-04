@@ -59,7 +59,7 @@ public class GuiNBTButton extends Widget {
 		return enabled;
 	}
 
-	public boolean inBounds(int mx, int my) {
+	public boolean inBounds(double mx, double my) {
 		return enabled && mx >= x && my >= y && mx < x + WIDTH && my < y + HEIGHT;
 	}
 

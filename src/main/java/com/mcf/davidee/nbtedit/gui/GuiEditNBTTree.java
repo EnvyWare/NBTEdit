@@ -13,74 +13,95 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.StringTextComponent;
-
-import java.io.IOException;
+import org.lwjgl.glfw.GLFW;
 
 public class GuiEditNBTTree extends Screen {
 
-	public final int entityOrX, y, z;
+	public final int entityId;
+	public final int y;
+	public final int z;
 	private boolean entity;
 	protected String screenTitle;
 	private GuiNBTTree guiTree;
+	private CompoundNBT tag;
 
 	public GuiEditNBTTree(int entity, CompoundNBT tag) {
 		super(StringTextComponent.EMPTY);
 		this.entity = true;
-		entityOrX = entity;
+		entityId = entity;
 		y = 0;
 		z = 0;
-		screenTitle = "NBTEdit -- EntityId #" + entityOrX;
-		guiTree = new GuiNBTTree(0, 0, 0, new NBTTree(tag));
+		screenTitle = "NBTEdit -- EntityId #" + entityId;
+		this.tag = tag;
 	}
 
 	public GuiEditNBTTree(BlockPos pos, CompoundNBT tag) {
 		super(StringTextComponent.EMPTY);
+
 		this.entity = false;
-		entityOrX = pos.getX();
+		this.entityId = -1;
 		this.y = pos.getY();
 		this.z = pos.getZ();
 		screenTitle = "NBTEdit -- TileEntity at " + pos.getX() + "," + pos.getY() + "," + pos.getZ();
-		guiTree = new GuiNBTTree(0, 0, 0, new NBTTree(tag));
+		this.tag = tag;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public void init() {
+		this.minecraft.keyboardHandler.setSendRepeatsToGui(true);
 		this.buttons.clear();
-		this.addButton(new Button(0, 0, width / 4 - 100, this.height - 27, new StringTextComponent("Save"), context -> this.quitWithSave()));
-		this.addButton(new Button(0, 0, width * 3 / 4 - 100, this.height - 27, new StringTextComponent("Quit"), p_onPress_1_ -> this.quitWithoutSaving()));
+		this.addButton(new Button(width / 4 - 100, this.height - 27, 40, 20, new StringTextComponent("Save"), context -> this.quitWithSave()));
+		this.addButton(new Button(width * 3 / 4 - 100, this.height - 27, 40, 20, new StringTextComponent("Quit"), context -> this.quitWithoutSaving()));
+		guiTree = new GuiNBTTree(width, height, height - 35, new NBTTree(this.tag));
+		this.setFocused(guiTree);
 	}
 
-//	protected void keyTyped(char par1, int key) {
-//		GuiEditNBT window = guiTree.getWindow();
-//		if (window != null)
-//			window.keyTyped(par1, key);
-//		else {
-//			if (key == 1) {
-//				if (guiTree.isEditingSlot())
-//					guiTree.stopEditingSlot();
-//				else
-//					quitWithoutSaving();
-//			} else if (key == Keyboard.KEY_DELETE)
-//				guiTree.deleteSelected();
-//			else if (key == Keyboard.KEY_RETURN)
-//				guiTree.editSelected();
-//			else if (key == Keyboard.KEY_UP)
-//				guiTree.arrowKeyPressed(true);
-//			else if (key == Keyboard.KEY_DOWN)
-//				guiTree.arrowKeyPressed(false);
-//			else
-//				guiTree.keyTyped(par1, key);
-//		}
-//	}
+	@Override
+	public boolean charTyped(char character, int keyCode) {
+		GuiEditNBT window = guiTree.getWindow();
+		if (window != null)
+			return window.charTyped(character, keyCode);
+		else {
+			if (keyCode == 1) {
+				if (guiTree.isEditingSlot())
+					guiTree.stopEditingSlot();
+				else
+					quitWithoutSaving();
+			} else if (keyCode == GLFW.GLFW_KEY_DELETE)
+				guiTree.deleteSelected();
+			else if (keyCode == GLFW.GLFW_KEY_ENTER)
+				guiTree.editSelected();
+			else if (keyCode == GLFW.GLFW_KEY_UP)
+				guiTree.arrowKeyPressed(true);
+			else if (keyCode == GLFW.GLFW_KEY_DOWN)
+				guiTree.arrowKeyPressed(false);
+			else
+				return guiTree.charTyped(character, keyCode);
 
-	protected void mouseClicked(int x, int y, int t) throws IOException {
+			return true;
+		}
+	}
+
+	@Override
+	public void tick() {
+		this.guiTree.updateScreen();
+	}
+
+	@Override
+	public boolean mouseClicked(double mouseX, double mouseY, int button) {
 		if (guiTree.getWindow() == null)
-			super.mouseClicked(x, y, t);
-		if (t == 0)
-			guiTree.mouseClicked(x, y);
-		if (t == 1)
-			guiTree.rightClick(x, y);
+			super.mouseClicked(mouseX, mouseY, button);
+		if (button == 0) {
+			this.setFocused(this.guiTree);
+			return guiTree.mouseClicked(mouseX, mouseY, button);
+		}
+		if (button == 1) {
+			this.setFocused(this.guiTree);
+			return guiTree.rightClick(mouseX, mouseY, button);
+		}
+
+		return super.mouseClicked(mouseX, mouseY, button);
 	}
 
 	@Override
@@ -94,9 +115,9 @@ public class GuiEditNBTTree extends Screen {
 
 	private void quitWithSave() {
 		if (entity)
-			PacketHandler.sendToServer(new EntityNBTPacket(entityOrX, guiTree.getNBTTree().toNBTTagCompound()));
+			PacketHandler.sendToServer(new EntityNBTPacket(entityId, guiTree.getNBTTree().toNBTTagCompound()));
 		else
-			PacketHandler.sendToServer(new TileNBTPacket(new BlockPos(entityOrX, y, z), guiTree.getNBTTree().toNBTTagCompound()));
+			PacketHandler.sendToServer(new TileNBTPacket(new BlockPos(entityId, y, z), guiTree.getNBTTree().toNBTTagCompound()));
 
 		Minecraft.getInstance().setScreen(null);
 	}
@@ -107,22 +128,21 @@ public class GuiEditNBTTree extends Screen {
 
 	@Override
 	public void render(MatrixStack matrixStack, int x, int y, float partialTicks) {
-		super.render(matrixStack, x, y, partialTicks);
-
+		matrixStack.pushPose();
 		guiTree.render(matrixStack, x, y, partialTicks);
+
 		AbstractGui.drawCenteredString(matrixStack, Minecraft.getInstance().font, this.screenTitle, this.width / 2, 5, 16777215);
+
 		if (guiTree.getWindow() == null)
 			super.render(matrixStack, x, y, partialTicks);
 		else
 			super.render(matrixStack, -1, -1, partialTicks);
-	}
 
-	public boolean doesGuiPauseGame() {
-		return true;
+		matrixStack.popPose();
 	}
 
 	public Entity getEntity() {
-		return entity ? Minecraft.getInstance().level.getEntity(entityOrX) : null;
+		return entity ? Minecraft.getInstance().level.getEntity(entityId) : null;
 	}
 
 	public boolean isTileEntity() {
@@ -130,7 +150,6 @@ public class GuiEditNBTTree extends Screen {
 	}
 
 	public int getBlockX() {
-		return entity ? 0 : entityOrX;
+		return entity ? 0 : entityId;
 	}
-
 }
