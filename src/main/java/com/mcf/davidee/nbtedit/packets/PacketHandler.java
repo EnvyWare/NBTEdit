@@ -2,38 +2,73 @@ package com.mcf.davidee.nbtedit.packets;
 
 import com.mcf.davidee.nbtedit.NBTEdit;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import net.minecraftforge.fml.relauncher.Side;
-import org.apache.logging.log4j.Level;
+import net.minecraftforge.fml.network.NetworkRegistry;
+import net.minecraftforge.fml.network.PacketDistributor;
+import net.minecraftforge.fml.network.simple.SimpleChannel;
 
-/**
- * Created by Jay113355 on 6/28/2016.
- *
- */
+import java.util.function.Supplier;
+
 public class PacketHandler {
-	public SimpleNetworkWrapper INSTANCE;
-	private static int ID = 0;
 
-	public void initialize() {
-		INSTANCE = NetworkRegistry.INSTANCE.newSimpleChannel(NBTEdit.MODID);
+	private static SimpleChannel instance;
+	private static int packetId = 0;
+
+	public static void initialize() {
+		instance = NetworkRegistry.ChannelBuilder.named(ResourceLocation.tryParse(NBTEdit.MODID + ":main"))
+				.serverAcceptedVersions(serverVersion -> {
+					if (serverVersion.equalsIgnoreCase(NetworkRegistry.ABSENT) || serverVersion.equalsIgnoreCase(NetworkRegistry.ACCEPTVANILLA)) {
+						return true;
+					}
+
+					return NBTEdit.VERSION.equals(serverVersion);
+				})
+				.clientAcceptedVersions(s -> s.equalsIgnoreCase(NBTEdit.VERSION))
+				.networkProtocolVersion(() -> NBTEdit.VERSION)
+				.simpleChannel();
+
 		registerPackets();
 	}
 
-	public void registerPackets() {
-		INSTANCE.registerMessage(TileRequestPacket.Handler.class, TileRequestPacket.class, ID++, Side.SERVER);
-		INSTANCE.registerMessage(TileNBTPacket.Handler.class, TileNBTPacket.class, ID++, Side.CLIENT);
-		INSTANCE.registerMessage(TileNBTPacket.Handler.class, TileNBTPacket.class, ID++, Side.SERVER);
-		INSTANCE.registerMessage(EntityRequestPacket.Handler.class, EntityRequestPacket.class, ID++, Side.SERVER);
-		INSTANCE.registerMessage(EntityNBTPacket.Handler.class, EntityNBTPacket.class, ID++, Side.CLIENT);
-		INSTANCE.registerMessage(EntityNBTPacket.Handler.class, EntityNBTPacket.class, ID++, Side.SERVER);
-		INSTANCE.registerMessage(MouseOverPacket.Handler.class, MouseOverPacket.class, ID++, Side.CLIENT);
+	private static void registerPackets() {
+		registerPacket(TileRequestPacket.class, TileRequestPacket::new);
+		registerPacket(TileNBTPacket.class, TileNBTPacket::new);
+		registerPacket(EntityRequestPacket.class, EntityRequestPacket::new);
+		registerPacket(EntityNBTPacket.class, EntityNBTPacket::new);
+		registerPacket(MouseOverPacket.class, MouseOverPacket::new);
+	}
+
+	private static <T extends Packet> void registerPacket(Class<T> clazz, Supplier<T> constructor) {
+		instance.registerMessage(packetId++, clazz, Packet::encode, packetBuffer -> decodeUsingSupplier(packetBuffer, constructor),
+				(packet, context) -> packet.handle(context.get()));
+	}
+
+	private static <T extends Packet> T decodeUsingSupplier(PacketBuffer packetBuffer, Supplier<T> supplier) {
+		T t = (T)supplier.get();
+
+		try {
+			t.decode(packetBuffer);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return t;
+	}
+
+	public static void sendPacket(ServerPlayerEntity player, Packet packet) {
+		instance.send(PacketDistributor.PLAYER.with(() -> player), packet);
+	}
+
+	public static void sendToServer(Packet packet) {
+		instance.sendToServer(packet);
 	}
 
 	/**
@@ -42,22 +77,19 @@ public class PacketHandler {
 	 * @param player The player to send the TileEntity to.
 	 * @param pos    The block containing the TileEntity.
 	 */
-	public void sendTile(final EntityPlayerMP player, final BlockPos pos) {
-		if (NBTEdit.proxy.checkPermission(player)) {
-			player.getServerWorld().addScheduledTask(new Runnable() {
-				@Override
-				public void run() {
-					TileEntity te = player.getServerWorld().getTileEntity(pos);
-					if (te != null) {
-						NBTTagCompound tag = new NBTTagCompound();
-						te.writeToNBT(tag);
-						INSTANCE.sendTo(new TileNBTPacket(pos, tag), player);
-					} else {
-						NBTEdit.proxy.sendMessage(player, "Error - There is no TileEntity at "
-								+ pos.getX() + ", " + pos.getY() + ", " + pos.getZ(), TextFormatting.RED);
-					}
-				}
-			});
+	public static void sendTile(ServerPlayerEntity player, final BlockPos pos) {
+		if (NBTEdit.checkPermission(player)) {
+			TileEntity te = player.getLevel().getBlockEntity(pos);
+
+			if (te != null) {
+				CompoundNBT tag = new CompoundNBT();
+				te.save(tag);
+				sendPacket(player, new TileNBTPacket(pos, tag));
+			} else {
+				player.sendMessage(new StringTextComponent(
+						"Error - There is no TileEntity at " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ())
+						.withStyle(TextFormatting.RED), Util.NIL_UUID);
+			}
 		}
 	}
 
@@ -67,26 +99,21 @@ public class PacketHandler {
 	 * @param player   The player to send the Entity data to.
 	 * @param entityId The id of the Entity.
 	 */
-	public void sendEntity(final EntityPlayerMP player, final int entityId) {
-		if (NBTEdit.proxy.checkPermission(player)) {
-			player.getServerWorld().addScheduledTask(new Runnable() {
-				@Override
-				public void run() {
-					Entity entity = player.getServerWorld().getEntityByID(entityId);
-					if (entity instanceof EntityPlayer && entity != player && !NBTEdit.editOtherPlayers) {
-						NBTEdit.proxy.sendMessage(player, "Error - You may not use NBTEdit on other Players", TextFormatting.RED);
-						NBTEdit.log(Level.WARN, player.getName() + " tried to use NBTEdit on another player, " + entity.getName());
-						return;
-					}
-					if (entity != null) {
-						NBTTagCompound tag = new NBTTagCompound();
-						entity.writeToNBT(tag);
-						INSTANCE.sendTo(new EntityNBTPacket(entityId, tag), player);
-					} else {
-						NBTEdit.proxy.sendMessage(player, "\"Error - Unknown EntityID #" + entityId, TextFormatting.RED);
-					}
-				}
-			});
+	public static void sendEntity(ServerPlayerEntity player, final int entityId) {
+		if (NBTEdit.checkPermission(player)) {
+			Entity entity = player.getLevel().getEntity(entityId);
+
+			if (entity instanceof PlayerEntity && entity != player && !NBTEdit.editOtherPlayers) {
+				player.sendMessage(new StringTextComponent("Error - You may not use NBTEdit on other Players")
+						.withStyle(TextFormatting.RED), Util.NIL_UUID);
+				return;
+			}
+
+			if (entity != null) {
+				CompoundNBT tag = new CompoundNBT();
+				entity.save(tag);
+				sendPacket(player, new EntityNBTPacket(entityId, tag));
+			}
 		}
 	}
 }

@@ -1,15 +1,11 @@
 package com.mcf.davidee.nbtedit.packets;
 
-import com.mcf.davidee.nbtedit.NBTEdit;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import org.apache.logging.log4j.Level;
+import net.minecraftforge.fml.network.NetworkEvent;
 
-public class TileRequestPacket implements IMessage {
+public class TileRequestPacket implements Packet {
 	/**
 	 * The position of the tileEntity requested.
 	 */
@@ -26,25 +22,18 @@ public class TileRequestPacket implements IMessage {
 	}
 
 	@Override
-	public void fromBytes(ByteBuf buf) {
-		this.pos = BlockPos.fromLong(buf.readLong());
+	public void decode(PacketBuffer buf) {
+		this.pos = buf.readBlockPos();
 	}
 
 	@Override
-	public void toBytes(ByteBuf buf) {
-		buf.writeLong(this.pos.toLong());
+	public void encode(PacketBuffer buf) {
+		buf.writeBlockPos(this.pos);
 	}
 
-	public static class Handler implements IMessageHandler<TileRequestPacket, IMessage> {
-
-		@Override
-		public IMessage onMessage(TileRequestPacket packet, MessageContext ctx) {
-			EntityPlayerMP player = ctx.getServerHandler().player;
-			NBTEdit.log(Level.TRACE, player.getName() + " requested tileEntity at "
-					+ packet.pos.getX() + ", " + packet.pos.getY() + ", " + packet.pos.getZ());
-			NBTEdit.NETWORK.sendTile(player, packet.pos);
-			return null;
-		}
+	@Override
+	public void handle(NetworkEvent.Context context) {
+		ServerPlayerEntity sender = context.getSender();
+		context.enqueueWork(() -> PacketHandler.sendTile(sender, this.pos));
 	}
-
 }

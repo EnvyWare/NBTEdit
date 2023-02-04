@@ -1,25 +1,21 @@
 package com.mcf.davidee.nbtedit.gui;
 
+import com.mcf.davidee.nbtedit.NBTStringHelper;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.AbstractGui;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.widget.Widget;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.ChatAllowedCharacters;
-
+import net.minecraft.client.util.InputMappings;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.text.StringTextComponent;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 
-import com.mcf.davidee.nbtedit.NBTStringHelper;
-
-public class GuiTextField extends Gui {
-
-	private final FontRenderer fontRenderer;
-
-	private final int xPos, yPos;
-	private final int width, height;
-
+public class GuiTextField extends Widget {
 
 	private String text = "";
 	private int maxStringLength = 32;
@@ -46,12 +42,9 @@ public class GuiTextField extends Gui {
 	private boolean enableBackgroundDrawing = true;
 	private boolean allowSection;
 
-	public GuiTextField(FontRenderer par1FontRenderer, int x, int y, int w, int h, boolean allowSection) {
-		this.fontRenderer = par1FontRenderer;
-		this.xPos = x;
-		this.yPos = y;
-		this.width = w;
-		this.height = h;
+	public GuiTextField(int x, int y, int width, int height, boolean allowSection) {
+		super(x, y, width, height, StringTextComponent.EMPTY);
+
 		this.allowSection = allowSection;
 	}
 
@@ -254,27 +247,27 @@ public class GuiTextField extends Gui {
 	/**
 	 * Call this method from you GuiScreen to process the keys into textbox.
 	 */
-	public boolean textboxKeyTyped(char par1, int par2) {
+	public boolean textboxKeyTyped(double par1, double par2) {
 		if (this.isEnabled && this.isFocused) {
-			switch (par1) {
+			switch ((int)par1) {
 				case 1:
 					this.setCursorPositionEnd();
 					this.setSelectionPos(0);
 					return true;
 				case 3:
-					GuiScreen.setClipboardString(this.getSelectedtext());
+					Minecraft.getInstance().keyboardHandler.setClipboard(this.getSelectedtext());
 					return true;
 				case 22:
-					this.writeText(GuiScreen.getClipboardString());
+					this.writeText(Minecraft.getInstance().keyboardHandler.getClipboard());
 					return true;
 				case 24:
-					GuiScreen.setClipboardString(this.getSelectedtext());
+					Minecraft.getInstance().keyboardHandler.setClipboard(this.getSelectedtext());
 					this.writeText("");
 					return true;
 				default:
-					switch (par2) {
+					switch ((int)par2) {
 						case 14:
-							if (GuiScreen.isCtrlKeyDown()) {
+							if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) {
 								this.deleteWords(-1);
 							} else {
 								this.deleteFromCursor(-1);
@@ -282,7 +275,7 @@ public class GuiTextField extends Gui {
 
 							return true;
 						case 199:
-							if (GuiScreen.isShiftKeyDown()) {
+							if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)) {
 								this.setSelectionPos(0);
 							} else {
 								this.setCursorPositionZero();
@@ -290,13 +283,13 @@ public class GuiTextField extends Gui {
 
 							return true;
 						case 203:
-							if (GuiScreen.isShiftKeyDown()) {
-								if (GuiScreen.isCtrlKeyDown()) {
+							if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)) {
+								if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) {
 									this.setSelectionPos(this.getNthWordFromPos(-1, this.getSelectionEnd()));
 								} else {
 									this.setSelectionPos(this.getSelectionEnd() - 1);
 								}
-							} else if (GuiScreen.isCtrlKeyDown()) {
+							} else if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) {
 								this.setCursorPosition(this.getNthWordFromCursor(-1));
 							} else {
 								this.moveCursorBy(-1);
@@ -304,13 +297,13 @@ public class GuiTextField extends Gui {
 
 							return true;
 						case 205:
-							if (GuiScreen.isShiftKeyDown()) {
-								if (GuiScreen.isCtrlKeyDown()) {
+							if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)) {
+								if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) {
 									this.setSelectionPos(this.getNthWordFromPos(1, this.getSelectionEnd()));
 								} else {
 									this.setSelectionPos(this.getSelectionEnd() + 1);
 								}
-							} else if (GuiScreen.isCtrlKeyDown()) {
+							} else if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) {
 								this.setCursorPosition(this.getNthWordFromCursor(1));
 							} else {
 								this.moveCursorBy(1);
@@ -318,7 +311,7 @@ public class GuiTextField extends Gui {
 
 							return true;
 						case 207:
-							if (GuiScreen.isShiftKeyDown()) {
+							if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)) {
 								this.setSelectionPos(this.text.length());
 							} else {
 								this.setCursorPositionEnd();
@@ -326,7 +319,7 @@ public class GuiTextField extends Gui {
 
 							return true;
 						case 211:
-							if (GuiScreen.isCtrlKeyDown()) {
+							if (InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL)) {
 								this.deleteWords(1);
 							} else {
 								this.deleteFromCursor(1);
@@ -334,12 +327,8 @@ public class GuiTextField extends Gui {
 
 							return true;
 						default:
-							if (ChatAllowedCharacters.isAllowedCharacter(par1)) {
-								this.writeText(Character.toString(par1));
-								return true;
-							} else {
-								return false;
-							}
+							this.writeText(Character.toString((char) par1));
+							return true;
 					}
 			}
 		} else {
@@ -352,41 +341,45 @@ public class GuiTextField extends Gui {
 	 */
 	public void mouseClicked(int par1, int par2, int par3) {
 		String displayString = text.replace(NBTStringHelper.SECTION_SIGN, '?');
-		boolean var4 = par1 >= this.xPos && par1 < this.xPos + this.width && par2 >= this.yPos && par2 < this.yPos + this.height;
+		boolean var4 = par1 >= this.x && par1 < this.y + this.width && par2 >= this.x && par2 < this.y + this.height;
 
 		this.setFocused(this.isEnabled && var4);
 
 		if (this.isFocused && par3 == 0) {
-			int var5 = par1 - this.xPos;
+			int var5 = par1 - this.x;
 
 			if (this.enableBackgroundDrawing) {
 				var5 -= 4;
 			}
 
-			String var6 = this.fontRenderer.trimStringToWidth(displayString.substring(this.field_73816_n), this.getWidth());
-			this.setCursorPosition(this.fontRenderer.trimStringToWidth(var6, var5).length() + this.field_73816_n);
+			FontRenderer font = Minecraft.getInstance().font;
+			String var6 = font.plainSubstrByWidth(displayString.substring(this.field_73816_n), this.getWidth());
+
+			this.setCursorPosition(font.plainSubstrByWidth(var6, var5).length() + this.field_73816_n);
 		}
 	}
 
 	/**
 	 * Draws the textbox
 	 */
-	public void drawTextBox() {
+	public void drawTextBox(MatrixStack matrixStack) {
 		String textToDisplay = text.replace(NBTStringHelper.SECTION_SIGN, '?');
 		if (this.getVisible()) {
 			if (this.getEnableBackgroundDrawing()) {
-				drawRect(this.xPos - 1, this.yPos - 1, this.xPos + this.width + 1, this.yPos + this.height + 1, -6250336);
-				drawRect(this.xPos, this.yPos, this.xPos + this.width, this.yPos + this.height, -16777216);
+				AbstractGui.fill(matrixStack, this.x - 1, this.y - 1, this.x + this.width + 1, this.y + this.height + 1, -6250336);
+				AbstractGui.fill(matrixStack, this.x, this.y, this.x + this.width, this.y + this.height, -16777216);
 			}
+
+			FontRenderer font = Minecraft.getInstance().font;
 
 			int var1 = this.isEnabled ? this.enabledColor : this.disabledColor;
 			int var2 = this.cursorPosition - this.field_73816_n;
 			int var3 = this.selectionEnd - this.field_73816_n;
-			String var4 = this.fontRenderer.trimStringToWidth(textToDisplay.substring(this.field_73816_n), this.getWidth());
+			String var4 = font.plainSubstrByWidth(textToDisplay.substring(this.field_73816_n), this.getWidth());
 			boolean var5 = var2 >= 0 && var2 <= var4.length();
 			boolean var6 = this.isFocused && this.cursorCounter / 6 % 2 == 0 && var5;
-			int var7 = this.enableBackgroundDrawing ? this.xPos + 4 : this.xPos;
-			int var8 = this.enableBackgroundDrawing ? this.yPos + (this.height - 8) / 2 : this.yPos;
+			int var7 = this.enableBackgroundDrawing ? this.x + 4 : this.x;
+			int var8 = this.enableBackgroundDrawing ? this.y + (this.height - 8) / 2 : this.y;
 			int var9 = var7;
 
 			if (var3 > var4.length()) {
@@ -395,7 +388,7 @@ public class GuiTextField extends Gui {
 
 			if (var4.length() > 0) {
 				String var10 = var5 ? var4.substring(0, var2) : var4;
-				var9 = this.fontRenderer.drawStringWithShadow(var10, var7, var8, var1);
+				var9 = font.drawShadow(matrixStack, var10, var7, var8, var1);
 			}
 
 			boolean var13 = this.cursorPosition < this.text.length() || this.text.length() >= this.getMaxStringLength();
@@ -409,20 +402,20 @@ public class GuiTextField extends Gui {
 			}
 
 			if (var4.length() > 0 && var5 && var2 < var4.length()) {
-				this.fontRenderer.drawStringWithShadow(var4.substring(var2), var9, var8, var1);
+				font.drawShadow(matrixStack, var4.substring(var2), var9, var8, var1);
 			}
 
 			if (var6) {
 				if (var13) {
-					Gui.drawRect(var11, var8 - 1, var11 + 1, var8 + 1 + this.fontRenderer.FONT_HEIGHT, -3092272);
+					AbstractGui.fill(matrixStack, var11, var8 - 1, var11 + 1, var8 + 1 + font.lineHeight, -3092272);
 				} else {
-					this.fontRenderer.drawStringWithShadow("_", var11, var8, var1);
+					font.drawShadow(matrixStack, "_", var11, var8, var1);
 				}
 			}
 
 			if (var3 != var2) {
-				int var12 = var7 + this.fontRenderer.getStringWidth(var4.substring(0, var3));
-				this.drawCursorVertical(var11, var8 - 1, var12 - 1, var8 + 1 + this.fontRenderer.FONT_HEIGHT);
+				int var12 = var7 + font.width(var4.substring(0, var3));
+				this.drawCursorVertical(matrixStack, var11, var8 - 1, var12 - 1, var8 + 1 + font.lineHeight);
 			}
 		}
 	}
@@ -430,7 +423,7 @@ public class GuiTextField extends Gui {
 	/**
 	 * draws the vertical line cursor in the textbox
 	 */
-	private void drawCursorVertical(int par1, int par2, int par3, int par4) {
+	private void drawCursorVertical(MatrixStack matrixStack, int par1, int par2, int par3, int par4) {
 		int var5;
 
 		if (par1 < par3) {
@@ -446,20 +439,17 @@ public class GuiTextField extends Gui {
 		}
 
 		Tessellator tessellator = Tessellator.getInstance();
-		BufferBuilder worldRenderer = tessellator.getBuffer();
+		BufferBuilder worldRenderer = tessellator.getBuilder();
+		Matrix4f matrix = matrixStack.last().pose();
+
 		GL11.glColor4f(0.0F, 0.0F, 255.0F, 255.0F);
-		GlStateManager.disableTexture2D();
-		GlStateManager.enableColorLogic();
-		GlStateManager.colorLogicOp(GL11.GL_OR_REVERSE);
 
 		worldRenderer.begin(7, DefaultVertexFormats.POSITION_COLOR);
-		worldRenderer.pos((double) par1, (double) par4, 0.0D);
-		worldRenderer.pos((double) par3, (double) par4, 0.0D);
-		worldRenderer.pos((double) par3, (double) par2, 0.0D);
-		worldRenderer.pos((double) par1, (double) par2, 0.0D);
-		tessellator.draw();
-		GlStateManager.disableColorLogic();
-		GlStateManager.enableTexture2D();
+		worldRenderer.vertex(matrix, par1, par4, 0.0F);
+		worldRenderer.vertex(matrix, par3, par4, 0.0F);
+		worldRenderer.vertex(matrix, par3, par2, 0.0F);
+		worldRenderer.vertex(matrix, par1, par2, 0.0F);
+		tessellator.end();
 	}
 
 	public void setMaxStringLength(int par1) {
@@ -562,32 +552,32 @@ public class GuiTextField extends Gui {
 
 		this.selectionEnd = par1;
 
-		if (this.fontRenderer != null) {
-			if (this.field_73816_n > var2) {
-				this.field_73816_n = var2;
-			}
+		if (this.field_73816_n > var2) {
+			this.field_73816_n = var2;
+		}
 
-			int var3 = this.getWidth();
-			String var4 = this.fontRenderer.trimStringToWidth(displayString.substring(this.field_73816_n), var3);
-			int var5 = var4.length() + this.field_73816_n;
+		FontRenderer font = Minecraft.getInstance().font;
 
-			if (par1 == this.field_73816_n) {
-				this.field_73816_n -= this.fontRenderer.trimStringToWidth(displayString, var3, true).length();
-			}
+		int var3 = this.getWidth();
+		String var4 = font.plainSubstrByWidth(displayString.substring(this.field_73816_n), var3);
+		int var5 = var4.length() + this.field_73816_n;
 
-			if (par1 > var5) {
-				this.field_73816_n += par1 - var5;
-			} else if (par1 <= this.field_73816_n) {
-				this.field_73816_n -= this.field_73816_n - par1;
-			}
+		if (par1 == this.field_73816_n) {
+			this.field_73816_n -= font.plainSubstrByWidth(displayString, var3, true).length();
+		}
 
-			if (this.field_73816_n < 0) {
-				this.field_73816_n = 0;
-			}
+		if (par1 > var5) {
+			this.field_73816_n += par1 - var5;
+		} else if (par1 <= this.field_73816_n) {
+			this.field_73816_n -= this.field_73816_n - par1;
+		}
 
-			if (this.field_73816_n > var2) {
-				this.field_73816_n = var2;
-			}
+		if (this.field_73816_n < 0) {
+			this.field_73816_n = 0;
+		}
+
+		if (this.field_73816_n > var2) {
+			this.field_73816_n = var2;
 		}
 	}
 

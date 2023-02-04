@@ -1,38 +1,27 @@
 package com.mcf.davidee.nbtedit.gui;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.nbt.NBTBase;
-import net.minecraft.nbt.NBTTagByte;
-import net.minecraft.nbt.NBTTagByteArray;
-import net.minecraft.nbt.NBTTagDouble;
-import net.minecraft.nbt.NBTTagFloat;
-import net.minecraft.nbt.NBTTagInt;
-import net.minecraft.nbt.NBTTagIntArray;
-import net.minecraft.nbt.NBTTagLong;
-import net.minecraft.nbt.NBTTagShort;
-import net.minecraft.nbt.NBTTagString;
-import net.minecraft.util.ResourceLocation;
-
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.opengl.GL11;
-
 import com.mcf.davidee.nbtedit.NBTStringHelper;
 import com.mcf.davidee.nbtedit.nbt.NamedNBT;
 import com.mcf.davidee.nbtedit.nbt.Node;
 import com.mcf.davidee.nbtedit.nbt.ParseHelper;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.nbt.*;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.StringTextComponent;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GL11;
 
-public class GuiEditNBT extends Gui {
+public class GuiEditNBT extends Widget {
 
 	public static final ResourceLocation WINDOW_TEXTURE = new ResourceLocation("nbtedit", "textures/gui/window.png");
 
 	public static final int WIDTH = 178, HEIGHT = 93;
 
-	private Minecraft mc = Minecraft.getMinecraft();
 	private Node<NamedNBT> node;
-	private NBTBase nbt;
+	private INBT nbt;
 	private boolean canEditText, canEditValue;
 	private GuiNBTTree parent;
 
@@ -40,13 +29,15 @@ public class GuiEditNBT extends Gui {
 
 
 	private GuiTextField key, value;
-	private GuiButton save, cancel;
+	private GuiCharacterButton save, cancel;
 	private String kError, vError;
 
 	private GuiCharacterButton newLine, section;
 
 
 	public GuiEditNBT(GuiNBTTree parent, Node<NamedNBT> node, boolean editText, boolean editValue) {
+		super(0, 0, 0, 0, StringTextComponent.EMPTY);
+
 		this.parent = parent;
 		this.node = node;
 		this.nbt = node.getObject().getNBT();
@@ -54,16 +45,14 @@ public class GuiEditNBT extends Gui {
 		canEditValue = editValue;
 	}
 
-	public void initGUI(int x, int y) {
-		this.x = x;
-		this.y = y;
 
-		section = new GuiCharacterButton((byte) 0, x + WIDTH - 1, y + 34);
-		newLine = new GuiCharacterButton((byte) 1, x + WIDTH - 1, y + 50);
+	public void init() {
+		section = new GuiCharacterButton(x + WIDTH - 1, y + 34, 0, 0);
+		newLine = new GuiCharacterButton(x + WIDTH - 1, y + 50, 0, 0);
 		String sKey = (key == null) ? node.getObject().getName() : key.getText();
 		String sValue = (value == null) ? getValue(nbt) : value.getText();
-		this.key = new GuiTextField(mc.fontRenderer, x + 46, y + 18, 116, 15, false);
-		this.value = new GuiTextField(mc.fontRenderer, x + 46, y + 44, 116, 15, true);
+		this.key = new GuiTextField(x + 46, y + 18, 116, 15, false);
+		this.value = new GuiTextField(x + 46, y + 44, 116, 15, true);
 
 		key.setText(sKey);
 		key.setEnableBackgroundDrawing(false);
@@ -72,7 +61,7 @@ public class GuiEditNBT extends Gui {
 		value.setText(sValue);
 		value.setEnableBackgroundDrawing(false);
 		value.func_82265_c(canEditValue);
-		save = new GuiButton(1, x + 9, y + 62, 75, 20, "Save");
+		save = new GuiCharacterButton(x + 9, y + 62, 75, 20);
 		if (!key.isFocused() && !value.isFocused()) {
 			if (canEditText)
 				key.setFocused(true);
@@ -81,7 +70,7 @@ public class GuiEditNBT extends Gui {
 		}
 		section.setEnabled(value.isFocused());
 		newLine.setEnabled(value.isFocused());
-		cancel = new GuiButton(0, x + 93, y + 62, 75, 20, "Cancel");
+		cancel = new GuiCharacterButton(x + 93, y + 62, 75, 20);
 	}
 
 	public void click(int mx, int my) {
@@ -94,9 +83,9 @@ public class GuiEditNBT extends Gui {
 		} else {
 			key.mouseClicked(mx, my, 0);
 			value.mouseClicked(mx, my, 0);
-			if (save.mousePressed(mc, mx, my))
+			if (save.mouseClicked(mx, my, 0))
 				saveAndQuit();
-			if (cancel.mousePressed(mc, mx, my))
+			if (cancel.mouseClicked(mx, my, 0))
 				parent.closeWindow();
 			section.setEnabled(value.isFocused());
 			newLine.setEnabled(value.isFocused());
@@ -111,33 +100,30 @@ public class GuiEditNBT extends Gui {
 		parent.closeWindow();
 	}
 
-	public void draw(int mx, int my) {
+	@Override
+	public void render(MatrixStack matrix, int mx, int my, float partialTicks) {
 		//GL11.glBindTexture(GL11.GL_TEXTURE_2D, mc.renderEngine.getTexture("/nbtedit_textures/nbteditwindow.png"));
-		mc.renderEngine.bindTexture(WINDOW_TEXTURE);
+		Minecraft.getInstance().getTextureManager().bind(WINDOW_TEXTURE);
 
 		GL11.glColor4f(1, 1, 1, 1);
-		drawTexturedModalRect(x, y, 0, 0, WIDTH, HEIGHT);
+		AbstractGui.blit(matrix, x, y, 0, 0, WIDTH, HEIGHT, 256, 256);
 		if (!canEditText)
-			drawRect(x + 42, y + 15, x + 169, y + 31, 0x80000000);
+			AbstractGui.fill(matrix, x + 42, y + 15, x + 169, y + 31, 0x80000000);
 		if (!canEditValue)
-			drawRect(x + 42, y + 41, x + 169, y + 57, 0x80000000);
-		key.drawTextBox();
-		value.drawTextBox();
+			AbstractGui.fill(matrix, x + 42, y + 41, x + 169, y + 57, 0x80000000);
+		key.drawTextBox(matrix);
+		value.drawTextBox(matrix);
 
-		save.drawButton(mc, mx, my, 0);
-		cancel.drawButton(mc, mx, my, 0);
+		save.render(matrix, mx, my, partialTicks);
+		cancel.render(matrix, mx, my, partialTicks);
 
 		if (kError != null)
-			drawCenteredString(mc.fontRenderer, kError, x + WIDTH / 2, y + 4, 0xFF0000);
+			AbstractGui.drawCenteredString(matrix, Minecraft.getInstance().font, kError, x + WIDTH / 2, y + 4, 0xFF0000);
 		if (vError != null)
-			drawCenteredString(mc.fontRenderer, vError, x + WIDTH / 2, y + 32, 0xFF0000);
+			AbstractGui.drawCenteredString(matrix, Minecraft.getInstance().font, vError, x + WIDTH / 2, y + 32, 0xFF0000);
 
-		newLine.draw(mx, my);
-		section.draw(mx, my);
-	}
-
-	public void drawCenteredString(FontRenderer par1FontRenderer, String par2Str, int par3, int par4, int par5) {
-		par1FontRenderer.drawString(par2Str, par3 - par1FontRenderer.getStringWidth(par2Str) / 2, par4, par5);
+		newLine.render(matrix, mx, my, partialTicks);
+		section.render(matrix, mx, my, partialTicks);
 	}
 
 	public void update() {
@@ -145,10 +131,11 @@ public class GuiEditNBT extends Gui {
 		key.updateCursorCounter();
 	}
 
-	public void keyTyped(char c, int i) {
-		if (i == Keyboard.KEY_ESCAPE) {
+	@Override
+	public void onClick(double c, double i) {
+		if (i == GLFW.GLFW_KEY_ESCAPE) {
 			parent.closeWindow();
-		} else if (i == Keyboard.KEY_TAB) {
+		} else if (i == GLFW.GLFW_KEY_TAB) {
 			if (key.isFocused() && canEditValue) {
 				key.setFocused(false);
 				value.setFocused(true);
@@ -158,9 +145,9 @@ public class GuiEditNBT extends Gui {
 			}
 			section.setEnabled(value.isFocused());
 			newLine.setEnabled(value.isFocused());
-		} else if (i == Keyboard.KEY_RETURN) {
+		} else if (i == GLFW.GLFW_KEY_ENTER) {
 			checkValidInput();
-			if (save.enabled)
+			if (save.isEnabled())
 				saveAndQuit();
 		} else {
 			key.textboxKeyTyped(c, i);
@@ -184,12 +171,12 @@ public class GuiEditNBT extends Gui {
 			vError = e.getMessage();
 			valid = false;
 		}
-		save.enabled = valid;
+		save.setEnabled(valid);
 	}
 
 	private boolean validName() {
 		for (Node<NamedNBT> node : this.node.getParent().getChildren()) {
-			NBTBase base = node.getObject().getNBT();
+			INBT base = node.getObject().getNBT();
 			if (base != nbt && node.getObject().getName().equals(key.getText()))
 				return false;
 		}
@@ -198,26 +185,26 @@ public class GuiEditNBT extends Gui {
 
 	private static void setValidValue(Node<NamedNBT> node, String value) {
 		NamedNBT named = node.getObject();
-		NBTBase base = named.getNBT();
+		INBT base = named.getNBT();
 
-		if (base instanceof NBTTagByte)
-			named.setNBT(new NBTTagByte(ParseHelper.parseByte(value)));
-		if (base instanceof NBTTagShort)
-			named.setNBT(new NBTTagShort(ParseHelper.parseShort(value)));
-		if (base instanceof NBTTagInt)
-			named.setNBT(new NBTTagInt(ParseHelper.parseInt(value)));
-		if (base instanceof NBTTagLong)
-			named.setNBT(new NBTTagLong(ParseHelper.parseLong(value)));
-		if (base instanceof NBTTagFloat)
-			named.setNBT(new NBTTagFloat(ParseHelper.parseFloat(value)));
-		if (base instanceof NBTTagDouble)
-			named.setNBT(new NBTTagDouble(ParseHelper.parseDouble(value)));
-		if (base instanceof NBTTagByteArray)
-			named.setNBT(new NBTTagByteArray(ParseHelper.parseByteArray(value)));
-		if (base instanceof NBTTagIntArray)
-			named.setNBT(new NBTTagIntArray(ParseHelper.parseIntArray(value)));
-		if (base instanceof NBTTagString)
-			named.setNBT(new NBTTagString(value));
+		if (base instanceof ByteNBT)
+			named.setNBT(ByteNBT.valueOf(ParseHelper.parseByte(value)));
+		if (base instanceof ShortNBT)
+			named.setNBT(ShortNBT.valueOf(ParseHelper.parseShort(value)));
+		if (base instanceof IntNBT)
+			named.setNBT(IntNBT.valueOf(ParseHelper.parseInt(value)));
+		if (base instanceof LongNBT)
+			named.setNBT(LongNBT.valueOf(ParseHelper.parseLong(value)));
+		if (base instanceof FloatNBT)
+			named.setNBT(FloatNBT.valueOf(ParseHelper.parseFloat(value)));
+		if (base instanceof DoubleNBT)
+			named.setNBT(DoubleNBT.valueOf(ParseHelper.parseDouble(value)));
+		if (base instanceof ByteArrayNBT)
+			named.setNBT(new ByteArrayNBT(ParseHelper.parseByteArray(value)));
+		if (base instanceof IntArrayNBT)
+			named.setNBT(new IntArrayNBT(ParseHelper.parseIntArray(value)));
+		if (base instanceof StringNBT)
+			named.setNBT(StringNBT.valueOf(value));
 	}
 
 	private static void validValue(String value, byte type) throws NumberFormatException {
@@ -249,27 +236,26 @@ public class GuiEditNBT extends Gui {
 		}
 	}
 
-	private static String getValue(NBTBase base) {
+	private static String getValue(INBT base) {
 		switch (base.getId()) {
 			case 7:
-				String s = "";
-				for (byte b : ((NBTTagByteArray) base).getByteArray()) {
-					s += b + " ";
+				StringBuilder s = new StringBuilder();
+				for (byte b : ((ByteArrayNBT)base).getAsByteArray()) {
+					s.append(b).append(" ");
 				}
-				return s;
+				return s.toString();
 			case 9:
 				return "TagList";
 			case 10:
 				return "TagCompound";
 			case 11:
-				String i = "";
-				for (int a : ((NBTTagIntArray) base).getIntArray()) {
-					i += a + " ";
+				StringBuilder i = new StringBuilder();
+				for (int a : ((IntArrayNBT)base).getAsIntArray()) {
+					i.append(a).append(" ");
 				}
-				return i;
+				return i.toString();
 			default:
 				return NBTStringHelper.toString(base);
 		}
 	}
-
 }

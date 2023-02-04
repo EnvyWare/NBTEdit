@@ -1,89 +1,78 @@
 package com.mcf.davidee.nbtedit.packets;
 
-import com.mcf.davidee.nbtedit.NBTEdit;
-import com.mcf.davidee.nbtedit.NBTHelper;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
+import com.mcf.davidee.nbtedit.gui.GuiEditNBTTree;
+import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import net.minecraftforge.fml.relauncher.Side;
-import org.apache.logging.log4j.Level;
+import net.minecraftforge.fml.network.NetworkEvent;
 
-public class TileNBTPacket implements IMessage {
-	/**
-	 * The block of the tileEntity.
-	 */
+public class TileNBTPacket implements Packet {
+
 	protected BlockPos pos;
-	/**
-	 * The nbt data of the tileEntity.
-	 */
-	protected NBTTagCompound tag;
+	protected CompoundNBT tag;
 
-	/**
-	 * Required default constructor.
-	 */
 	public TileNBTPacket() {
 	}
 
-	public TileNBTPacket(BlockPos pos, NBTTagCompound tag) {
+	public TileNBTPacket(BlockPos pos, CompoundNBT tag) {
 		this.pos = pos;
 		this.tag = tag;
 	}
 
 	@Override
-	public void fromBytes(ByteBuf buf) {
-		this.pos = BlockPos.fromLong(buf.readLong());
-		this.tag = NBTHelper.readNbtFromBuffer(buf);
+	public void decode(PacketBuffer buf) {
+		this.pos = buf.readBlockPos();
+		this.tag = buf.readNbt();
 	}
 
 	@Override
-	public void toBytes(ByteBuf buf) {
-		buf.writeLong(this.pos.toLong());
-		NBTHelper.writeToBuffer(this.tag, buf);
+	public void encode(PacketBuffer buf) {
+		buf.writeBlockPos(this.pos);
+		buf.writeNbt(this.tag);
 	}
 
-	public static class Handler implements IMessageHandler<TileNBTPacket, IMessage> {
-
-		@Override
-		public IMessage onMessage(final TileNBTPacket packet, MessageContext ctx) {
-			if (ctx.side == Side.SERVER) {
-				final EntityPlayerMP player = ctx.getServerHandler().player;
-				player.getServerWorld().addScheduledTask(new Runnable() {
-					@Override
-					public void run() {
-						TileEntity te = player.getServerWorld().getTileEntity(packet.pos);
-						if (te != null && NBTEdit.proxy.checkPermission(player)) {
-							try {
-								te.readFromNBT(packet.tag);
-								te.markDirty();// Ensures changes gets saved to disk later on.
-								if (te.hasWorld() && te.getWorld() instanceof WorldServer) {
-									((WorldServer) te.getWorld()).getPlayerChunkMap().markBlockForUpdate(packet.pos);// Broadcast changes.
-								}
-								NBTEdit.log(Level.TRACE, player.getName() + " edited a tag -- Tile Entity at " + packet.pos.getX() + ", " + packet.pos.getY() + ", " + packet.pos.getZ());
-								NBTEdit.logTag(packet.tag);
-								NBTEdit.proxy.sendMessage(player, "Your changes have been saved", TextFormatting.WHITE);
-							} catch (Throwable t) {
-								NBTEdit.proxy.sendMessage(player, "Save Failed - Invalid NBT format for Tile Entity", TextFormatting.RED);
-								NBTEdit.log(Level.WARN, player.getName() + " edited a tag and caused an exception");
-								NBTEdit.logTag(packet.tag);
-								NBTEdit.throwing("TileNBTPacket", "Handler.onMessage", t);
-							}
-						} else {
-							NBTEdit.log(Level.WARN, player.getName() + " tried to edit a non-existent TileEntity at " + packet.pos.getX() + ", " + packet.pos.getY() + ", " + packet.pos.getZ());
-							NBTEdit.proxy.sendMessage(player, "cSave Failed - There is no TileEntity at " + packet.pos.getX() + ", " + packet.pos.getY() + ", " + packet.pos.getZ(), TextFormatting.RED);
-						}
-					}
-				});
-			} else {
-				NBTEdit.proxy.openEditGUI(packet.pos, packet.tag);
-			}
-			return null;
-		}
+	@Override
+	public void handle(NetworkEvent.Context context) {
+		Minecraft.getInstance().setScreen(new GuiEditNBTTree(this.pos, this.tag));
 	}
+//
+//	public static class Handler implements IMessageHandler<TileNBTPacket, IMessage> {
+//
+//		@Override
+//		public IMessage onMessage(final TileNBTPacket packet, MessageContext ctx) {
+//			if (ctx.side == Side.SERVER) {
+//				final EntityPlayerMP player = ctx.getServerHandler().player;
+//				player.getServerWorld().addScheduledTask(new Runnable() {
+//					@Override
+//					public void run() {
+//						TileEntity te = player.getServerWorld().getTileEntity(packet.pos);
+//						if (te != null && NBTEdit.proxy.checkPermission(player)) {
+//							try {
+//								te.readFromNBT(packet.tag);
+//								te.markDirty();// Ensures changes gets saved to disk later on.
+//								if (te.hasWorld() && te.getWorld() instanceof WorldServer) {
+//									((WorldServer) te.getWorld()).getPlayerChunkMap().markBlockForUpdate(packet.pos);// Broadcast changes.
+//								}
+//								NBTEdit.log(Level.TRACE, player.getName() + " edited a tag -- Tile Entity at " + packet.pos.getX() + ", " + packet.pos.getY() + ", " + packet.pos.getZ());
+//								NBTEdit.logTag(packet.tag);
+//								NBTEdit.proxy.sendMessage(player, "Your changes have been saved", TextFormatting.WHITE);
+//							} catch (Throwable t) {
+//								NBTEdit.proxy.sendMessage(player, "Save Failed - Invalid NBT format for Tile Entity", TextFormatting.RED);
+//								NBTEdit.log(Level.WARN, player.getName() + " edited a tag and caused an exception");
+//								NBTEdit.logTag(packet.tag);
+//								NBTEdit.throwing("TileNBTPacket", "Handler.onMessage", t);
+//							}
+//						} else {
+//							NBTEdit.log(Level.WARN, player.getName() + " tried to edit a non-existent TileEntity at " + packet.pos.getX() + ", " + packet.pos.getY() + ", " + packet.pos.getZ());
+//							NBTEdit.proxy.sendMessage(player, "cSave Failed - There is no TileEntity at " + packet.pos.getX() + ", " + packet.pos.getY() + ", " + packet.pos.getZ(), TextFormatting.RED);
+//						}
+//					}
+//				});
+//			} else {
+//				NBTEdit.proxy.openEditGUI(packet.pos, packet.tag);
+//			}
+//			return null;
+//		}
+//	}
 }

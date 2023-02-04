@@ -1,7 +1,5 @@
 package com.mcf.davidee.nbtedit.gui;
 
-import net.minecraft.util.ChatAllowedCharacters;
-
 import com.mcf.davidee.nbtedit.NBTStringHelper;
 
 public class CharacterFilter {
@@ -9,7 +7,7 @@ public class CharacterFilter {
 		StringBuilder sb = new StringBuilder();
 		char[] arr = str.toCharArray();
 		for (char c : arr) {
-			if (ChatAllowedCharacters.isAllowedCharacter(c) || (section && (c == NBTStringHelper.SECTION_SIGN || c == '\n')))
+			if ((section && (c == NBTStringHelper.SECTION_SIGN || c == '\n')))
 				sb.append(c);
 		}
 

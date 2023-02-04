@@ -1,0 +1,15 @@
+modLoader="javafml"
+loaderVersion="[36,)"
+license="LGPL"
+issueTrackerURL="https://github.com/"
+
+[[mods]]
+modId="nbtedit"
+version="2.0.0"
+displayName="NbtEdit"
+displayURL="https://github.com/"
+credits="Lots of people"
+authors="https://github.com/"
+description='''
+NBT EDIT
+'''

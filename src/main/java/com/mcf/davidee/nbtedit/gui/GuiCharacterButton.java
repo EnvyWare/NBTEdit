@@ -1,46 +1,50 @@
 package com.mcf.davidee.nbtedit.gui;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.gui.AbstractGui;
+import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.util.text.StringTextComponent;
 
-public class GuiCharacterButton extends Gui {
-	public static final int WIDTH = 14, HEIGHT = 14;
+public class GuiCharacterButton extends Widget {
 
-	private Minecraft mc = Minecraft.getMinecraft();
-	private byte id;
-	private int x, y;
-	private boolean enabled;
+	public static final int WIDTH = 14;
+	public static final int HEIGHT = 14;
 
+	private boolean enabled = false;
 
-	public GuiCharacterButton(byte id, int x, int y) {
-		this.id = id;
-		this.x = x;
-		this.y = y;
+	public GuiCharacterButton(int x, int y, int width, int height) {
+		super(x, y, width, height, StringTextComponent.EMPTY);
 	}
 
-	public void draw(int mx, int my) {
-		mc.renderEngine.bindTexture(GuiNBTNode.WIDGET_TEXTURE);
-		if (inBounds(mx, my))
-			Gui.drawRect(x, y, x + WIDTH, y + HEIGHT, 0x80ffffff);
+	@Override
+	public void render(MatrixStack matrix, int mouseX, int mouseY, float partialTicks) {
+		Minecraft.getInstance().getTextureManager().bind(GuiNBTNode.WIDGET_TEXTURE);
 
-		if (enabled) {
-			GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-		} else GlStateManager.color(0.5F, 0.5F, 0.5F, 1.0F);
+		if (this.inBounds(mouseX, mouseY)) {
+			AbstractGui.fill(matrix, x, y, x + WIDTH, y + HEIGHT, 0x80ffffff);
+		}
 
-		drawTexturedModalRect(x, y, id * WIDTH, 27, WIDTH, HEIGHT);
+		if (this.active) {
+			RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
+		} else {
+			RenderSystem.color4f(0.5F, 0.5F, 0.5F, 1.0F);
+		}
+
+
+		// drawTexturedModalRect(x, y, id * WIDTH, 27, WIDTH, HEIGHT);
 	}
 
-	public void setEnabled(boolean aFlag) {
-		enabled = aFlag;
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
 	}
 
 	public boolean inBounds(int mx, int my) {
-		return enabled && mx >= x && my >= y && mx < x + WIDTH && my < y + HEIGHT;
+		return this.enabled && mx >= x && my >= y && mx < x + WIDTH && my < y + HEIGHT;
 	}
 
-	public byte getId() {
-		return id;
+	public boolean isEnabled() {
+		return this.enabled;
 	}
 }
- 

@@ -1,45 +1,37 @@
 package com.mcf.davidee.nbtedit.packets;
 
-import com.mcf.davidee.nbtedit.NBTEdit;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.network.NetworkEvent;
 
-public class MouseOverPacket implements IMessage {
+public class MouseOverPacket implements Packet {
 
-	/**
-	 * Required default constructor.
-	 */
 	public MouseOverPacket() {
 	}
 
 	@Override
-	public void fromBytes(ByteBuf buf) {
+	public void decode(PacketBuffer buf) {
 	}
 
 	@Override
-	public void toBytes(ByteBuf buf) {
+	public void encode(PacketBuffer buf) {
 	}
 
-	public static class Handler implements IMessageHandler<MouseOverPacket, IMessage> {
+	@Override
+	public void handle(NetworkEvent.Context context) {
+		RayTraceResult pos = Minecraft.getInstance().hitResult;
 
-		@Override
-		public IMessage onMessage(MouseOverPacket message, MessageContext ctx) {
-			RayTraceResult pos = Minecraft.getMinecraft().objectMouseOver;
-			if (pos != null) {
-				if (pos.entityHit != null) {
-					return new EntityRequestPacket(pos.entityHit.getEntityId());
-				} else if (pos.typeOfHit == RayTraceResult.Type.BLOCK) {
-					return new TileRequestPacket(pos.getBlockPos());
-				} else {
-					NBTEdit.proxy.sendMessage(null, "Error - No tile or entity selected", TextFormatting.RED);
-				}
-			}
-			return null;
+		if (pos == null || pos.getType() == RayTraceResult.Type.MISS) {
+			return;
+		}
+
+		if (pos.getType() == RayTraceResult.Type.ENTITY) {
+			PacketHandler.sendToServer(new EntityRequestPacket(((EntityRayTraceResult) pos).getEntity().getId()));
+		} else if (pos.getType() == RayTraceResult.Type.BLOCK) {
+			PacketHandler.sendToServer(new TileRequestPacket(((BlockRayTraceResult) pos).getBlockPos()));
 		}
 	}
 }

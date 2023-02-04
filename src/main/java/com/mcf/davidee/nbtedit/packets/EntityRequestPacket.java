@@ -1,22 +1,13 @@
 package com.mcf.davidee.nbtedit.packets;
 
-import com.mcf.davidee.nbtedit.NBTEdit;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import org.apache.logging.log4j.Level;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
 
-public class EntityRequestPacket implements IMessage {
-	/**
-	 * The id of the entity being requested.
-	 */
+public class EntityRequestPacket implements Packet {
+
 	private int entityID;
 
-	/**
-	 * Required default constructor.
-	 */
 	public EntityRequestPacket() {
 	}
 
@@ -25,23 +16,18 @@ public class EntityRequestPacket implements IMessage {
 	}
 
 	@Override
-	public void fromBytes(ByteBuf buf) {
+	public void decode(PacketBuffer buf) {
 		this.entityID = buf.readInt();
 	}
 
 	@Override
-	public void toBytes(ByteBuf buf) {
+	public void encode(PacketBuffer buf) {
 		buf.writeInt(this.entityID);
 	}
 
-	public static class Handler implements IMessageHandler<EntityRequestPacket, IMessage> {
-
-		@Override
-		public IMessage onMessage(EntityRequestPacket packet, MessageContext ctx) {
-			EntityPlayerMP player = ctx.getServerHandler().player;
-			NBTEdit.log(Level.TRACE, player.getName() + " requested entity with Id #" + packet.entityID);
-			NBTEdit.NETWORK.sendEntity(player, packet.entityID);
-			return null;
-		}
+	@Override
+	public void handle(NetworkEvent.Context context) {
+		ServerPlayerEntity sender = context.getSender();
+		context.enqueueWork(() -> PacketHandler.sendEntity(sender, this.entityID));
 	}
 }
