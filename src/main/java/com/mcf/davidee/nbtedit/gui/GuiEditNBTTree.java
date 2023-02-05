@@ -58,6 +58,29 @@ public class GuiEditNBTTree extends Screen {
 	}
 
 	@Override
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		if (guiTree.getWindow() != null) {
+			return guiTree.getWindow().keyPressed(keyCode, scanCode, modifiers);
+		}
+
+		if (keyCode == GLFW.GLFW_KEY_UP) {
+			guiTree.arrowKeyPressed(true);
+			return true;
+		} else if (keyCode == GLFW.GLFW_KEY_DOWN) {
+			guiTree.arrowKeyPressed(false);
+			return true;
+		} else if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+			guiTree.deleteSelected();
+			return true;
+		} else if (keyCode == GLFW.GLFW_KEY_ENTER) {
+			guiTree.editSelected();
+			return true;
+		}
+
+		return super.keyPressed(keyCode, scanCode, modifiers);
+	}
+
+	@Override
 	public boolean charTyped(char character, int keyCode) {
 		GuiEditNBT window = guiTree.getWindow();
 		if (window != null)
@@ -68,15 +91,7 @@ public class GuiEditNBTTree extends Screen {
 					guiTree.stopEditingSlot();
 				else
 					quitWithoutSaving();
-			} else if (keyCode == GLFW.GLFW_KEY_DELETE)
-				guiTree.deleteSelected();
-			else if (keyCode == GLFW.GLFW_KEY_ENTER)
-				guiTree.editSelected();
-			else if (keyCode == GLFW.GLFW_KEY_UP)
-				guiTree.arrowKeyPressed(true);
-			else if (keyCode == GLFW.GLFW_KEY_DOWN)
-				guiTree.arrowKeyPressed(false);
-			else
+			} else
 				return guiTree.charTyped(character, keyCode);
 
 			return true;

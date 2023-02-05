@@ -1,6 +1,5 @@
 package com.mcf.davidee.nbtedit.gui;
 
-import com.google.common.collect.Lists;
 import com.mcf.davidee.nbtedit.NBTEdit;
 import com.mcf.davidee.nbtedit.NBTHelper;
 import com.mcf.davidee.nbtedit.NBTStringHelper;
@@ -106,7 +105,7 @@ public class GuiNBTTree extends Widget {
 
 	public void updateScreen() {
 		if (window != null)
-			window.update();
+			window.tick();
 		if (focusedSlotIndex != -1)
 			saves[focusedSlotIndex].update();
 	}
@@ -358,6 +357,7 @@ public class GuiNBTTree extends Widget {
 					break;
 				}
 			}
+
 			if (!reInit) {
 				for (GuiNBTButton button : buttons) { //Check top buttons
 					if (button.inBounds(mouseX, mouseY)) {
