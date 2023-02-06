@@ -69,8 +69,7 @@ public class NBTEdit {
 	}
 
 	public static boolean checkPermission(ServerPlayerEntity player) {
-		return true;
-		/*return isOP(player) || PermissionAPI.hasPermission(player, NBTEdit.MODID);*/
+		return isOP(player) || PermissionAPI.hasPermission(player, NBTEdit.MODID);
 	}
 
 	public static boolean isOP(ServerPlayerEntity player) {

@@ -4,6 +4,8 @@ import com.mcf.davidee.nbtedit.gui.GuiEditNBTTree;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.network.NetworkEvent;
 
 public class EntityNBTPacket implements Packet {
@@ -31,6 +33,7 @@ public class EntityNBTPacket implements Packet {
 		buf.writeNbt(this.tag);
 	}
 
+	@OnlyIn(Dist.CLIENT)
 	@Override
 	public void handle(NetworkEvent.Context context) {
 		Minecraft.getInstance().setScreen(new GuiEditNBTTree(this.entityID, this.tag));
