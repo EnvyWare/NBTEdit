@@ -1,9 +1,7 @@
 package com.mcf.davidee.nbtedit.gui;
 
 import com.mcf.davidee.nbtedit.nbt.NBTTree;
-import com.mcf.davidee.nbtedit.packets.EntityNBTPacket;
-import com.mcf.davidee.nbtedit.packets.PacketHandler;
-import com.mcf.davidee.nbtedit.packets.TileNBTPacket;
+import com.mcf.davidee.nbtedit.packets.*;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.AbstractGui;
@@ -130,9 +128,9 @@ public class GuiEditNBTTree extends Screen {
 
 	private void quitWithSave() {
 		if (entity)
-			PacketHandler.sendToServer(new EntityNBTPacket(entityId, guiTree.getNBTTree().toNBTTagCompound()));
+			PacketHandler.sendToServer(new UpdateEntityNBTPacket(entityId, guiTree.getNBTTree().toNBTTagCompound()));
 		else
-			PacketHandler.sendToServer(new TileNBTPacket(new BlockPos(entityId, y, z), guiTree.getNBTTree().toNBTTagCompound()));
+			PacketHandler.sendToServer(new UpdateTileNBTPacket(new BlockPos(entityId, y, z), guiTree.getNBTTree().toNBTTagCompound()));
 
 		Minecraft.getInstance().setScreen(null);
 	}
