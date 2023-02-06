@@ -46,8 +46,8 @@ public class GuiEditNBT extends Widget {
 
 
 	public void init() {
-		section = new GuiCharacterButton(x + WIDTH - 1, y + 34, 0, 0);
-		newLine = new GuiCharacterButton(x + WIDTH - 1, y + 50, 0, 0);
+		section = new GuiCharacterButton(2,x + WIDTH - 1, y + 34, 0, 0);
+		newLine = new GuiCharacterButton(1, x + WIDTH - 1, y + 50, 0, 0);
 		String sKey = (key == null) ? node.getObject().getName() : key.getValue();
 		String sValue = (value == null) ? getValue(nbt) : value.getValue();
 		this.key = new TextFieldWidget(Minecraft.getInstance().font, x + 46, y + 18, 116, 15, new StringTextComponent(sKey));

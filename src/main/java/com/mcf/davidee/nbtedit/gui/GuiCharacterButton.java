@@ -12,10 +12,13 @@ public class GuiCharacterButton extends Widget {
 	public static final int WIDTH = 14;
 	public static final int HEIGHT = 14;
 
+	private int id;
 	private boolean enabled = false;
 
-	public GuiCharacterButton(int x, int y, int width, int height) {
+	public GuiCharacterButton(int id, int x, int y, int width, int height) {
 		super(x, y, width, height, StringTextComponent.EMPTY);
+
+		this.id = id;
 	}
 
 	@Override
@@ -32,7 +35,7 @@ public class GuiCharacterButton extends Widget {
 			RenderSystem.color4f(0.5F, 0.5F, 0.5F, 1.0F);
 		}
 
-		 AbstractGui.blit(matrix, x, y, 1 * WIDTH, 27, WIDTH, HEIGHT, 256, 256);
+		 AbstractGui.blit(matrix, x, y, this.id * WIDTH, 27, WIDTH, HEIGHT, 256, 256);
 	}
 
 	public void setEnabled(boolean enabled) {

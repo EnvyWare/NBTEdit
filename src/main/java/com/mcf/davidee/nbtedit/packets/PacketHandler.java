@@ -45,6 +45,8 @@ public class PacketHandler {
 		registerPacket(EntityRequestPacket.class, EntityRequestPacket::new);
 		registerPacket(EntityNBTPacket.class, EntityNBTPacket::new);
 		registerPacket(MouseOverPacket.class, MouseOverPacket::new);
+		registerPacket(UpdateTileNBTPacket.class, UpdateTileNBTPacket::new);
+		registerPacket(UpdateEntityNBTPacket.class, UpdateEntityNBTPacket::new);
 	}
 
 	private static <T extends Packet> void registerPacket(Class<T> clazz, Supplier<T> constructor) {

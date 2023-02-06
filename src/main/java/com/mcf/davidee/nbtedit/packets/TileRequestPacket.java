@@ -6,14 +6,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fml.network.NetworkEvent;
 
 public class TileRequestPacket implements Packet {
-	/**
-	 * The position of the tileEntity requested.
-	 */
+
 	private BlockPos pos;
 
-	/**
-	 * Required default constructor.
-	 */
 	public TileRequestPacket() {
 	}
 
@@ -37,3 +32,4 @@ public class TileRequestPacket implements Packet {
 		context.enqueueWork(() -> PacketHandler.sendTile(sender, this.pos));
 	}
 }
+
