@@ -32,7 +32,13 @@ public class PacketHandler {
 
 					return NBTEdit.VERSION.equals(serverVersion);
 				})
-				.clientAcceptedVersions(s -> s.equalsIgnoreCase(NBTEdit.VERSION))
+				.clientAcceptedVersions(clientVersion -> {
+					if (clientVersion.equalsIgnoreCase(NetworkRegistry.ABSENT) || clientVersion.equalsIgnoreCase(NetworkRegistry.ACCEPTVANILLA)) {
+						return true;
+					}
+
+					return NBTEdit.VERSION.equals(clientVersion);
+				})
 				.networkProtocolVersion(() -> NBTEdit.VERSION)
 				.simpleChannel();
 
